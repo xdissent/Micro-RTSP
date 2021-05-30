@@ -1,6 +1,5 @@
 #pragma once
 
-#include "LinkedListElement.h"
 #include "CStreamer.h"
 #include "platglue.h"
 
@@ -15,17 +14,20 @@ enum RTSP_CMD_TYPES
     RTSP_UNKNOWN
 };
 
-#define RTSP_BUFFER_SIZE       10000    // for incoming requests, and outgoing responses
-#define RTSP_PARAM_STRING_MAX  200
+#define RTSP_BUFFER_SIZE       2048 // for incoming requests, and outgoing responses
+#define RTSP_PARAM_STRING_MAX  256
 #define MAX_HOSTNAME_LEN       256
+#define RESPONSE_BUFFER_SIZE   1024
+#define TRANSPORT_BUFFER_SIZE  256
+#define OBUF_SIZE              256
 
-class CRtspSession : public LinkedListElement
+class CRtspSession
 {
 public:
-    CRtspSession(WiFiClient& aRtspClient, CStreamer * aStreamer);
+    CRtspSession(SOCKET aRtspClient, CStreamer * aStreamer);
     ~CRtspSession();
 
-    RTSP_CMD_TYPES Handle_RtspRequest(char const * aRequest, unsigned aRequestSize);
+    RTSP_CMD_TYPES Handle_RtspRequest( char *aRequest, unsigned aRequestSize );
     int            GetStreamID();
 
     /**
@@ -35,18 +37,17 @@ public:
      */
     bool handleRequests(uint32_t readTimeoutMs);
 
+    /**
+       broadcast a current frame
+     */
+    void broadcastCurrentFrame(uint32_t curMsec);
+
     bool m_streaming;
     bool m_stopped;
 
-    void    InitTransport(u_short aRtpPort, u_short aRtcpPort);
-
-    bool isTcpTransport() { return m_TcpTransport; }
-    SOCKET& getClient() { return m_RtspClient; }
-    
-    uint16_t getRtpClientPort() { return m_RtpClientPort; }
 private:
-    void Init();
-    bool ParseRtspRequest(char const * aRequest, unsigned aRequestSize);
+    void newCommandInit();
+    bool ParseRtspRequest( char * aRequest, unsigned aRequestSize );
     char const * DateHeader();
 
     // RTSP request command handlers
@@ -57,7 +58,6 @@ private:
 
     // global session state parameters
     int m_RtspSessionID;
-    WiFiClient m_Client;
     SOCKET m_RtspClient;                                      // RTSP socket of that session
     int m_StreamID;                                           // number of simulated stream of that session
     IPPORT m_ClientRTPPort;                                  // client port for UDP based RTP transport
@@ -66,14 +66,20 @@ private:
     CStreamer    * m_Streamer;                                // the UDP or TCP streamer of that session
 
     // parameters of the last received RTSP request
-
-    RTSP_CMD_TYPES m_RtspCmdType;                             // command type (if any) of the current request
-    char m_URLPreSuffix[RTSP_PARAM_STRING_MAX];               // stream name pre suffix
-    char m_URLSuffix[RTSP_PARAM_STRING_MAX];                  // stream name suffix
-    char m_CSeq[RTSP_PARAM_STRING_MAX];                       // RTSP command sequence number
-    char m_URLHostPort[MAX_HOSTNAME_LEN];                     // host:port part of the URL
-    unsigned m_ContentLength;                                 // SDP string size
-
-    uint16_t m_RtpClientPort;      // RTP receiver port on client (in host byte order!)
-    uint16_t m_RtcpClientPort;     // RTCP receiver port on client (in host byte order!)
+    RTSP_CMD_TYPES m_RtspCmdType;                             /// command type (if any) of the current request
+    char m_CommandPresentationPart[RTSP_PARAM_STRING_MAX];        /// stream name pre suffix
+    char m_CommandStreamPart[RTSP_PARAM_STRING_MAX];              /// stream name suffix
+    char m_CommandHostPort[MAX_HOSTNAME_LEN];                     /// host:port part of the URL
+    unsigned m_CSeq;                                          /// RTSP command sequence number
+    unsigned m_ContentLength;                                 /// SDP string size
+    //various buffers to be allocated to the heap
+    char * RecvBuf;
+    char * Response;
+    char * SDPBuf;
+    char * OBuf;
+    char * Transport;
+    char * timeBuf;
+    char * CmdName; // used for reporting only. longest cmd is like GET_PARAMETER == 13 char
+    int bufPos;
+    enum { hdrStateUnknown, hdrStateGotMethod, hdrStateInvalid } state;
 };
