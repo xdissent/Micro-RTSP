@@ -15,50 +15,45 @@ Just "pio lib install Micro-RTSP" to pull the latest version from their library 
 camera support you'll need to be targeting the espressif32 platform in your project.
 
 See the [example platform.io app](/examples).  It should build and run on virtually any of the $10
-ESP32-CAM boards (such as M5CAM).  The relevant bit of the code is included below.  In short:
+ESP32-CAM boards (such as M5CAM) with some modifications The example is targeted for the AI-Thinker ESP32-CAM.
+The relevant bit of the code is included below.  In short:
 1. Listen for a TCP connection on the RTSP port with accept()
 2. When a connection comes in, create a CRtspSession and OV2640Streamer camera streamer objects.
 3. While the connection remains, call session->handleRequests(0) to handle any incoming client requests.
-4. Every 100ms or so call session->broadcastCurrentFrame() to send new frames to any clients.
+4. Every 100ms or so (10 FPS) call session->broadcastCurrentFrame() to send new frames to any clients.
 
 ```
 void loop()
 {
-    uint32_t msecPerFrame = 100;
-    static uint32_t lastimage = millis();
-
     // If we have an active client connection, just service that until gone
-    // (FIXME - support multiple simultaneous clients)
-    if(session) {
+    if(streamer)
+    {
         session->handleRequests(0); // we don't use a timeout here,
         // instead we send only if we have new enough frames
 
         uint32_t now = millis();
-        if(now > lastimage + msecPerFrame || now < lastimage) { // handle clock rollover
+        if((now > (lastFrameTime + msecPerFrame)) || (now < lastFrameTime))
+        {
             session->broadcastCurrentFrame(now);
-            lastimage = now;
-
-            // check if we are overrunning our max frame rate
-            now = millis();
-            if(now > lastimage + msecPerFrame)
-                printf("warning exceeding max frame rate of %d ms\n", now - lastimage);
+            lastFrameTime = now;
         }
 
-        if(session->m_stopped) {
+        if(session->m_stopped)
+        {
             delete session;
             delete streamer;
             session = NULL;
             streamer = NULL;
         }
     }
-    else {
+    else
+    {
         client = rtspServer.accept();
 
-        if(client) {
-            //streamer = new SimStreamer(&client, true);             // our streamer for UDP/TCP based RTP transport
-            streamer = new OV2640Streamer(&client, cam);             // our streamer for UDP/TCP based RTP transport
-
-            session = new CRtspSession(&client, streamer); // our threads RTSP session and state
+        if(client)
+        {
+            streamer = new OV2640Streamer(&client, cam);
+            session = new CRtspSession(&client, streamer);
         }
     }
 }
