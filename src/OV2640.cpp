@@ -1,5 +1,4 @@
 #include "OV2640.h"
-#include "platglue.h"
 
 #define TAG "OV2640"
 
@@ -61,13 +60,13 @@ camera_config_t esp32cam_aithinker_config{
     .pin_href = 23,
     .pin_pclk = 22,
     .xclk_freq_hz = 20000000,
-    .ledc_timer = LEDC_TIMER_0,
-    .ledc_channel = LEDC_CHANNEL_0,
+    .ledc_timer = LEDC_TIMER_1,
+    .ledc_channel = LEDC_CHANNEL_1,
     .pixel_format = PIXFORMAT_JPEG,
     // .frame_size = FRAMESIZE_UXGA, // needs 234K of framebuffer space
     // .frame_size = FRAMESIZE_SXGA, // needs 160K for framebuffer
     // .frame_size = FRAMESIZE_XGA, // needs 96K or even smaller FRAMESIZE_SVGA - can work if using only 1 fb
-    .frame_size = FRAMESIZE_VGA,
+    .frame_size = FRAMESIZE_SVGA,
     .jpeg_quality = 12, //0-63 lower numbers are higher quality
     .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
 };
@@ -101,7 +100,6 @@ camera_config_t esp32cam_ttgo_t_config{
     .jpeg_quality = 12, //0-63 lower numbers are higher quality
     .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
 };
-
 void OV2640::done(void)
 {
     if (fb) {
@@ -194,7 +192,7 @@ esp_err_t OV2640::init(camera_config_t config)
     esp_err_t err = esp_camera_init(&_cam_config);
     if (err != ESP_OK)
     {
-        DEBUG_PRINT("Camera probe failed with error 0x%x", err);
+        printf("Camera probe failed with error 0x%x", err);
         return err;
     }
     // ESP_ERROR_CHECK(gpio_install_isr_service(0));

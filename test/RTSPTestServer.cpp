@@ -7,21 +7,21 @@
 #include <sys/time.h>
 
 
-void workerThread( SOCKET s )
+
+void workerThread(SOCKET s)
 {
-    SimStreamer streamer( s, true ); // our streamer for UDP/TCP based RTP transport. true == use bigger resolution
+    SimStreamer streamer(s, true);                     // our streamer for UDP/TCP based RTP transport
 
-    CRtspSession rtsp(s, &streamer); // our threads RTSP session and state
+    CRtspSession rtsp(s, &streamer);     // our threads RTSP session and state
 
-    while ( !rtsp.m_stopped )
+    while (!rtsp.m_stopped)
     {
         uint32_t timeout = 400;
-        if( ! rtsp.handleRequests( timeout ) )
-        {
+        if(!rtsp.handleRequests(timeout)) {
             struct timeval now;
-            gettimeofday( &now, NULL ); // crufty msecish timer
+            gettimeofday(&now, NULL); // crufty msecish timer
             uint32_t msec = now.tv_sec * 1000 + now.tv_usec / 1000;
-            rtsp.broadcastCurrentFrame( msec );
+            rtsp.broadcastCurrentFrame(msec);
         }
     }
 }
@@ -34,7 +34,7 @@ int main()
     sockaddr_in ClientAddr;                                   // address parameters of a new RTSP client
     socklen_t ClientAddrLen = sizeof(ClientAddr);
 
-    printf( "running test RTSP server\n" );
+    printf("running RTSP server\n");
 
     ServerAddr.sin_family      = AF_INET;
     ServerAddr.sin_addr.s_addr = INADDR_ANY;
@@ -53,14 +53,13 @@ int main()
 
         return 0;
     }
-
     if (listen(MasterSocket,5) != 0) return 0;
 
-    while ( true )
+    while (true)
     {   // loop forever to accept client connections
         ClientSocket = accept(MasterSocket,(struct sockaddr*)&ClientAddr,&ClientAddrLen);
         printf("Client connected. Client address: %s\r\n",inet_ntoa(ClientAddr.sin_addr));
-        //if(fork() == 0) //NO! makes it a pain to debug
+        if(fork() == 0)
             workerThread(ClientSocket);
     }
 

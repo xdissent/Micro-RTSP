@@ -1,19 +1,17 @@
 #include "CStreamer.h"
+#include "CRtspSession.h"
 
 #include <stdio.h>
 
-CStreamer::CStreamer(SOCKET aClient, u_short width, u_short height) : m_Client(aClient)
+CStreamer::CStreamer(u_short width, u_short height) : m_Clients()
 {
-    DEBUG_PRINT("Creating TSP streamer\n");
+    printf("Creating TSP streamer\n");
     m_RtpServerPort  = 0;
     m_RtcpServerPort = 0;
-    m_RtpClientPort  = 0;
-    m_RtcpClientPort = 0;
 
     m_SequenceNumber = 0;
     m_Timestamp      = 0;
     m_SendIdx        = 0;
-    m_TCPTransport   = false;
 
     m_RtpSocket = NULLSOCKET;
     m_RtcpSocket = NULLSOCKET;
@@ -22,47 +20,55 @@ CStreamer::CStreamer(SOCKET aClient, u_short width, u_short height) : m_Client(a
     m_height = height;
     m_prevMsec = 0;
 
-    m_URIHost = "127.0.0.1:554";
-    m_URIPresentation = "mjpeg";
-    m_URIStream = "1";
-    
-    RtpBuf = new char[RTPBUF_SIZE];
-}
+    m_udpRefCount = 0;
+};
 
 CStreamer::~CStreamer()
 {
-    udpsocketclose(m_RtpSocket);
-    udpsocketclose(m_RtcpSocket);
-    delete[] RtpBuf;
-}
+    LinkedListElement* element = m_Clients.m_Next;
+    CRtspSession* session = NULL;
+    while (element != &m_Clients)
+    {
+        session = static_cast<CRtspSession*>(element);
+        element = element->m_Next;
+        delete session;
+    }
+};
 
-void CStreamer::setURI( String hostport, String pres, String stream ) // set URI parts for sessions to use.
+void CStreamer::addSession(WiFiClient& aClient)
 {
-    m_URIHost = hostport;
-    m_URIPresentation = pres;
-    m_URIStream = stream;
+    // printf("CStreamer::addSession\n");
+    CRtspSession* session = new CRtspSession(aClient, this); // our threads RTSP session and state
+    // we have it stored in m_Clients
 }
 
 int CStreamer::SendRtpPacket(unsigned const char * jpeg, int jpegLen, int fragmentOffset, BufPtr quant0tbl, BufPtr quant1tbl)
 {
+    // printf("CStreamer::SendRtpPacket offset:%d - begin\n", fragmentOffset);
 #define KRtpHeaderSize 12           // size of the RTP header
 #define KJpegHeaderSize 8           // size of the special JPEG payload header
 
-#define MAX_FRAGMENT_SIZE 1300 // anything larger will blow out a payload if quant tables are included
+#define MAX_FRAGMENT_SIZE 1100 // FIXME, pick more carefully
     int fragmentLen = MAX_FRAGMENT_SIZE;
     if(fragmentLen + fragmentOffset > jpegLen) // Shrink last fragment if needed
         fragmentLen = jpegLen - fragmentOffset;
 
     bool isLastFragment = (fragmentOffset + fragmentLen) == jpegLen;
 
+    if (!m_Clients.NotEmpty())
+    {
+        return isLastFragment ? 0 : fragmentOffset;
+    }
+
     // Do we have custom quant tables? If so include them per RFC
 
     bool includeQuantTbl = quant0tbl && quant1tbl && fragmentOffset == 0;
     uint8_t q = includeQuantTbl ? 128 : 0x5e;
 
+    static char RtpBuf[2048]; // Note: we assume single threaded, this large buf we keep off of the tiny stack
     int RtpPacketSize = fragmentLen + KRtpHeaderSize + KJpegHeaderSize + (includeQuantTbl ? (4 + 64 * 2) : 0);
 
-    memset(RtpBuf,0x00,RTPBUF_SIZE);
+    memset(RtpBuf,0x00,sizeof(RtpBuf));
     // Prepare the first 4 byte of the packet. This is the Rtp over Rtsp header in case of TCP based transport
     RtpBuf[0]  = '$';        // magic number
     RtpBuf[1]  = 0;          // number of multiplexed subchannel on RTPS connection - here the RTP channel
@@ -99,7 +105,7 @@ int CStreamer::SendRtpPacket(unsigned const char * jpeg, int jpegLen, int fragme
 
     int headerLen = 24; // Inlcuding jpeg header but not qant table header
     if(includeQuantTbl) { // we need a quant header - but only in first packet of the frame
-        DEBUG_PRINT("inserting quanttbl\n");
+        //printf("inserting quanttbl\n");
         RtpBuf[24] = 0; // MBZ
         RtpBuf[25] = 0; // 8 bit precision
         RtpBuf[26] = 0; // MSB of lentgh
@@ -115,7 +121,7 @@ int CStreamer::SendRtpPacket(unsigned const char * jpeg, int jpegLen, int fragme
         memcpy(RtpBuf + headerLen, quant1tbl, numQantBytes);
         headerLen += numQantBytes;
     }
-    DEBUG_PRINT("Sending timestamp %d, seq %d, fragoff %d, fraglen %d, jpegLen %d\n", m_Timestamp, m_SequenceNumber, fragmentOffset, fragmentLen, jpegLen);
+    // printf("Sending timestamp %d, seq %d, fragoff %d, fraglen %d, jpegLen %d\n", m_Timestamp, m_SequenceNumber, fragmentOffset, fragmentLen, jpegLen);
 
     // append the JPEG scan data to the RTP buffer
     memcpy(RtpBuf + headerLen,jpeg + fragmentOffset, fragmentLen);
@@ -127,54 +133,104 @@ int CStreamer::SendRtpPacket(unsigned const char * jpeg, int jpegLen, int fragme
     IPPORT otherport;
 
     // RTP marker bit must be set on last fragment
-    if (m_TCPTransport) // RTP over RTSP - we send the buffer + 4 byte additional header
-        socketsend(m_Client,RtpBuf,RtpPacketSize + 4);
-    else                // UDP - we send just the buffer by skipping the 4 byte RTP over RTSP header
+    LinkedListElement* element = m_Clients.m_Next;
+    CRtspSession* session = NULL;
+    while (element != &m_Clients)
     {
-        socketpeeraddr(m_Client, &otherip, &otherport);
-        udpsocketsend(m_RtpSocket,&RtpBuf[4],RtpPacketSize, otherip, m_RtpClientPort);
-    }
-    return isLastFragment ? 0 : fragmentOffset;
-}
-
-void CStreamer::InitTransport(u_short aRtpPort, u_short aRtcpPort, bool TCP)
-{
-    m_RtpClientPort  = aRtpPort;
-    m_RtcpClientPort = aRtcpPort;
-    m_TCPTransport   = TCP;
-
-    if (!m_TCPTransport)
-    {   // allocate port pairs for RTP/RTCP ports in UDP transport mode
-        for (u_short P = 6970; P < 0xFFFE; P += 2)
-        {
-            m_RtpSocket     = udpsocketcreate(P);
-            if (m_RtpSocket)
-            {   // Rtp socket was bound successfully. Lets try to bind the consecutive Rtsp socket
-                m_RtcpSocket = udpsocketcreate(P + 1);
-                if (m_RtcpSocket)
-                {
-                    m_RtpServerPort  = P;
-                    m_RtcpServerPort = P+1;
-                    break;
-                }
-                else
-                {
-                    udpsocketclose(m_RtpSocket);
-                    udpsocketclose(m_RtcpSocket);
-                }
+        session = static_cast<CRtspSession*>(element);
+        if (session->m_streaming && !session->m_stopped) {
+            if (session->isTcpTransport()) // RTP over RTSP - we send the buffer + 4 byte additional header
+                socketsend(session->getClient(),RtpBuf,RtpPacketSize + 4);
+            else                // UDP - we send just the buffer by skipping the 4 byte RTP over RTSP header
+            {
+                socketpeeraddr(session->getClient(), &otherip, &otherport);
+                udpsocketsend(m_RtpSocket,&RtpBuf[4],RtpPacketSize, otherip, session->getRtpClientPort());
             }
         }
+        element = element->m_Next;
     }
-}
+    // printf("CStreamer::SendRtpPacket offset:%d - end\n", fragmentOffset);
+    return isLastFragment ? 0 : fragmentOffset;
+};
 
 u_short CStreamer::GetRtpServerPort()
 {
     return m_RtpServerPort;
-}
+};
 
 u_short CStreamer::GetRtcpServerPort()
 {
     return m_RtcpServerPort;
+};
+
+bool CStreamer::InitUdpTransport(void)
+{
+    if (m_udpRefCount != 0)
+    {
+        ++m_udpRefCount;
+        return true;
+    }
+
+    for (u_short P = 6970; P < 0xFFFE; P += 2)
+    {
+        m_RtpSocket     = udpsocketcreate(P);
+        if (m_RtpSocket)
+        {   // Rtp socket was bound successfully. Lets try to bind the consecutive Rtsp socket
+            m_RtcpSocket = udpsocketcreate(P + 1);
+            if (m_RtcpSocket)
+            {
+                m_RtpServerPort  = P;
+                m_RtcpServerPort = P+1;
+                break;
+            }
+            else
+            {
+                udpsocketclose(m_RtpSocket);
+                udpsocketclose(m_RtcpSocket);
+            };
+        }
+    };
+    ++m_udpRefCount;
+    return true;
+}
+
+void CStreamer::ReleaseUdpTransport(void)
+{
+    --m_udpRefCount;
+    if (m_udpRefCount == 0)
+    {
+        m_RtpServerPort  = 0;
+        m_RtcpServerPort = 0;
+        udpsocketclose(m_RtpSocket);
+        udpsocketclose(m_RtcpSocket);
+
+        m_RtpSocket = NULLSOCKET;
+        m_RtcpSocket = NULLSOCKET;
+    }
+}
+
+/**
+   Call handleRequests on all sessions
+ */
+bool CStreamer::handleRequests(uint32_t readTimeoutMs)
+{
+    bool retVal = true;
+    LinkedListElement* element = m_Clients.m_Next;
+    while(element != &m_Clients)
+    {
+        CRtspSession* session = static_cast<CRtspSession*>(element);
+        retVal &= session->handleRequests(readTimeoutMs);
+
+        element = element->m_Next;
+
+        if (session->m_stopped) 
+        {
+            // remove session here, so we wont have to send to it
+            delete session;
+        }
+    }
+
+    return retVal;
 }
 
 void CStreamer::streamFrame(unsigned const char *data, uint32_t dataLen, uint32_t curMsec)
@@ -190,7 +246,7 @@ void CStreamer::streamFrame(unsigned const char *data, uint32_t dataLen, uint32_
     BufPtr qtable0, qtable1;
 
     if(!decodeJPEGfile(&data, &dataLen, &qtable0, &qtable1)) {
-        ERROR_PRINT("can't decode jpeg data\n");
+        printf("can't decode jpeg data\n");
         return;
     }
 
@@ -205,7 +261,7 @@ void CStreamer::streamFrame(unsigned const char *data, uint32_t dataLen, uint32_
 
     m_SendIdx++;
     if (m_SendIdx > 1) m_SendIdx = 0;
-}
+};
 
 #include <assert.h>
 
@@ -234,13 +290,13 @@ bool findJPEGheader(BufPtr *start, uint32_t *len, uint8_t marker) {
     while(bytes - *start < *len) {
         uint8_t framing = *bytes++; // better be 0xff
         if(framing != 0xff) {
-            ERROR_PRINT("malformed jpeg, framing=%x\n", framing);
+            printf("malformed jpeg, framing=%x\n", framing);
             return false;
         }
         uint8_t typecode = *bytes++;
         if(typecode == marker) {
             unsigned skipped = bytes - *start;
-            DEBUG_PRINT("found marker 0x%x, skipped %d\n", marker, skipped);
+            //printf("found marker 0x%x, skipped %d\n", marker, skipped);
 
             *start = bytes;
 
@@ -264,18 +320,18 @@ bool findJPEGheader(BufPtr *start, uint32_t *len, uint8_t marker) {
             {
                 // standard format section with 2 bytes for len.  skip that many bytes
                 uint32_t len = bytes[0] * 256 + bytes[1];
-                DEBUG_PRINT("skipping section 0x%x, %d bytes\n", typecode, len);
+                //printf("skipping section 0x%x, %d bytes\n", typecode, len);
                 bytes += len;
                 break;
             }
             default:
-                ERROR_PRINT("unexpected jpeg typecode 0x%x\n", typecode);
+                printf("unexpected jpeg typecode 0x%x\n", typecode);
                 break;
             }
         }
     }
 
-    ERROR_PRINT("failed to find jpeg marker 0x%x", marker);
+    printf("failed to find jpeg marker 0x%x", marker);
     return false;
 }
 
@@ -295,7 +351,7 @@ void skipScanBytes(BufPtr *start) {
 }
 void  nextJpegBlock(BufPtr *bytes) {
     uint32_t len = (*bytes)[0] * 256 + (*bytes)[1];
-    DEBUG_PRINT("going to next jpeg block %d bytes\n", len);
+    //printf("going to next jpeg block %d bytes\n", len);
     *bytes += len;
 }
 
@@ -315,18 +371,18 @@ bool decodeJPEGfile(BufPtr *start, uint32_t *len, BufPtr *qtable0, BufPtr *qtabl
     BufPtr quantstart = *start;
     uint32_t quantlen = *len;
     if(!findJPEGheader(&quantstart, &quantlen, 0xdb)) {
-        ERROR_PRINT("error can't find quant table 0\n");
+        printf("error can't find quant table 0\n");
     }
     else {
-        DEBUG_PRINT("found quant table %x\n", quantstart[2]);
+        // printf("found quant table %x\n", quantstart[2]);
 
         *qtable0 = quantstart + 3;     // 3 bytes of header skipped
         nextJpegBlock(&quantstart);
         if(!findJPEGheader(&quantstart, &quantlen, 0xdb)) {
-            ERROR_PRINT("error can't find quant table 1\n");
+            printf("error can't find quant table 1\n");
         }
         else {
-            DEBUG_PRINT("found quant table %x\n", quantstart[2]);
+            // printf("found quant table %x\n", quantstart[2]);
         }
         *qtable1 = quantstart + 3;
         nextJpegBlock(&quantstart);
