@@ -401,20 +401,20 @@ void CRtspSession::Handle_RtspDESCRIBE()
     }
 
     // simulate DESCRIBE server response
-    char * ColonPtr;
-    strcpy( OBuf, m_CommandHostPort );
-    ColonPtr = strstr( OBuf, ":" );
-    if (ColonPtr != nullptr) ColonPtr[0] = 0x00;
+    //char * ColonPtr;
+    //strcpy( OBuf, m_CommandHostPort );
+    //ColonPtr = strstr( OBuf, ":" );
+    //if (ColonPtr != nullptr) ColonPtr[0] = 0x00; //TODO good?
 
     snprintf( SDPBuf, RESPONSE_BUFFER_SIZE,
              "v=0\r\n"
-             "o=- %d 1 IN IP4 %s\r\n"
+             "o=- %d %d IN IP4 %s\r\n"
              "s=\r\n"
              "t=0 0\r\n"                                       // start / stop - 0 -> unbounded and permanent session
-             "m=video 0 RTP/AVP 26\r\n"                        // currently we just handle UDP sessions (??????)
-             // "a=x-dimensions: 640,480\r\n"
+             "m=video 0 RTP/AVP 26\r\n"
              "c=IN IP4 0.0.0.0\r\n",
-             rand(),
+             (int)getRandom(),
+             (int)getRandom(),
              m_CommandHostPort );
 
     snprintf( Response, RESPONSE_BUFFER_SIZE,
@@ -446,7 +446,7 @@ void CRtspSession::Handle_RtspSETUP()
         snprintf(Transport,TRANSPORT_BUFFER_SIZE,"RTP/AVP/TCP;unicast;interleaved=0-1");
     else
         snprintf(Transport,TRANSPORT_BUFFER_SIZE,
-                 "RTP/AVP;unicast;destination=127.0.0.1;source=127.0.0.1;client_port=%i-%i;server_port=%i-%i",
+                 "RTP/AVP;unicast;destination=127.0.0.1;source=127.0.0.1;client_port=%i-%i;server_port=%i-%i", //TODO set IP addresses
                  m_ClientRTPPort,
                  m_ClientRTCPPort,
                  m_Streamer->GetRtpServerPort(),
@@ -472,10 +472,11 @@ void CRtspSession::Handle_RtspPLAY()
              "%s\r\n"
              "Range: npt=0.000-\r\n"
              "Session: %i\r\n"
-             "RTP-Info: url=rtsp://127.0.0.1:8554/mjpeg/1/track1\r\n\r\n", // FIXME
+             "RTP-Info: url=rtsp://%s/%s/%s/\r\n\r\n", // FIXME
              m_CSeq,
              DateHeader(),
-             m_RtspSessionID);
+             m_RtspSessionID,
+             m_CommandHostPort, m_CommandPresentationPart, m_CommandStreamPart);
 
     socketsend(m_RtspClient,Response,strlen(Response));
 }

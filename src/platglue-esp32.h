@@ -25,11 +25,11 @@ inline void closesocket(SOCKET s) {
 
     if(s) {
         s->stop();
-        // delete s; TDP WiFiClients are never on the heap in arduino land?
+        // delete s; TDP WiFiClients are never on the heap in arduino land
     }
 }
 
-#define getRandom() random(65536)
+#define getRandom() random(0, INT_MAX)
 
 inline void socketpeeraddr(SOCKET s, IPADDRESS *addr, IPPORT *port) {
     *addr = s->remoteIP();
@@ -61,7 +61,6 @@ inline UDPSOCKET udpsocketcreate(unsigned short portNum)
 inline ssize_t socketsend(SOCKET sockfd, const void *buf, size_t len)
 {
     ssize_t sent = sockfd->write((uint8_t *) buf, len);
-    sockfd->flush();
 
     return sent;
 }
