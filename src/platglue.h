@@ -14,8 +14,10 @@
 #define ERROR_PRINT(...) /* do nothing */
 #endif
 
-#ifdef ARDUINO_ARCH_ESP32
-#include "platglue-esp32.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "platglue-arduino.h"
+#elif defined(ESP_PLATFORM)
+#include "platglue-esp-idf.h"
 #else
 #include "platglue-posix.h"
 #endif

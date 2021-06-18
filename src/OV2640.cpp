@@ -34,7 +34,8 @@ camera_config_t esp32cam_config{
     // .frame_size = FRAMESIZE_XGA, // needs 96K or even smaller FRAMESIZE_SVGA - can work if using only 1 fb
     .frame_size = FRAMESIZE_SVGA,
     .jpeg_quality = 12, //0-63 lower numbers are higher quality
-    .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
+    .fb_count = 2,      // if more than one i2s runs in continous mode.  Use only with jpeg
+    .grab_mode = CAMERA_GRAB_WHEN_EMPTY
 };
 
 camera_config_t esp32cam_aithinker_config{
@@ -69,7 +70,8 @@ camera_config_t esp32cam_aithinker_config{
     // .frame_size = FRAMESIZE_XGA, // needs 96K or even smaller FRAMESIZE_SVGA - can work if using only 1 fb
     .frame_size = FRAMESIZE_VGA,
     .jpeg_quality = 12, //0-63 lower numbers are higher quality
-    .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
+    .fb_count = 2,      // if more than one i2s runs in continous mode.  Use only with jpeg
+    .grab_mode = CAMERA_GRAB_WHEN_EMPTY
 };
 
 camera_config_t esp32cam_ttgo_t_config{
@@ -99,12 +101,16 @@ camera_config_t esp32cam_ttgo_t_config{
     .pixel_format = PIXFORMAT_JPEG,
     .frame_size = FRAMESIZE_SVGA,
     .jpeg_quality = 12, //0-63 lower numbers are higher quality
-    .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
+    .fb_count = 2,      // if more than one i2s runs in continous mode.  Use only with jpeg
+    .grab_mode = CAMERA_GRAB_WHEN_EMPTY
 };
 
 void OV2640::done(void)
 {
-    if (fb) {
+    DEBUG_PRINT("OV240: done\n");
+    if (fb)
+    {
+        DEBUG_PRINT("OV240: done fb return\n");
         //return the frame buffer back to the driver for reuse
         esp_camera_fb_return(fb);
         fb = NULL;
@@ -113,17 +119,26 @@ void OV2640::done(void)
 
 void OV2640::run(void)
 {
+    DEBUG_PRINT("OV240: run\n");
     if (fb)
+    {
+        DEBUG_PRINT("OV240: run fb return\n");
         //return the frame buffer back to the driver for reuse
         esp_camera_fb_return(fb);
+    }
 
+    DEBUG_PRINT("OV240: run fb get\n");
     fb = esp_camera_fb_get();
+    DEBUG_PRINT("OV240: run fb gotten\n");
 }
 
 void OV2640::runIfNeeded(void)
 {
     if (!fb)
+    {
+        DEBUG_PRINT("OV240: runIfNeeded running\n");
         run();
+    }
 }
 
 int OV2640::getWidth(void)
@@ -142,7 +157,9 @@ size_t OV2640::getSize(void)
 {
     runIfNeeded();
     if (!fb)
+    {
         return 0; // FIXME - this shouldn't be possible but apparently the new cam board returns null sometimes?
+    }
     return fb->len;
 }
 
@@ -150,7 +167,9 @@ uint8_t *OV2640::getfb(void)
 {
     runIfNeeded();
     if (!fb)
+    {
         return NULL; // FIXME - this shouldn't be possible but apparently the new cam board returns null sometimes?
+    }
 
     return fb->buf;
 }

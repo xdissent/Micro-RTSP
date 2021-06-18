@@ -32,7 +32,7 @@ CRtspSession::CRtspSession(SOCKET aRtspClient, CStreamer * aStreamer) : m_RtspCl
 
 CRtspSession::~CRtspSession()
 {
-    closesocket(m_RtspClient);
+    tcpsocketclose(m_RtspClient);
 
     delete[] RecvBuf;
     delete[] Response;
@@ -342,7 +342,10 @@ bool CRtspSession::ParseRtspRequest( char * aRequest, unsigned aRequestSize )
             }
         } // Transport:
 
-        if ( *cur_pos != '\r' ) ERROR_PRINT( "? unknown header ?\n" );
+        if ( *cur_pos != '\r' )
+        {
+            ERROR_PRINT( "? unknown header ?\n" );
+        }
 
         // ignored headers are skipped. we left current position at the CRLF so next loop is going smoothly
         while ( *cur_pos && *cur_pos != '\r' )
@@ -377,7 +380,7 @@ void CRtspSession::Handle_RtspOPTION()
              "RTSP/1.0 200 OK\r\nCSeq: %u\r\n"
              "Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n\r\n", m_CSeq);
 
-    socketsend(m_RtspClient,Response,strlen(Response));
+    tcpsocketsend(m_RtspClient,Response,strlen(Response));
 }
 
 void CRtspSession::Handle_RtspDESCRIBE()
@@ -396,7 +399,7 @@ void CRtspSession::Handle_RtspDESCRIBE()
                  m_CSeq,
                  DateHeader());
 
-        socketsend( m_RtspClient, Response, strlen(Response) );
+        tcpsocketsend( m_RtspClient, Response, strlen(Response) );
         return;
     }
 
@@ -430,7 +433,7 @@ void CRtspSession::Handle_RtspDESCRIBE()
              (int) strlen(SDPBuf),
              SDPBuf);
 
-    socketsend( m_RtspClient, Response, strlen(Response) );
+    tcpsocketsend( m_RtspClient, Response, strlen(Response) );
 }
 
 void CRtspSession::Handle_RtspSETUP()
@@ -461,7 +464,7 @@ void CRtspSession::Handle_RtspSETUP()
              Transport,
              m_RtspSessionID);
 
-    socketsend(m_RtspClient,Response,strlen(Response));
+    tcpsocketsend(m_RtspClient,Response,strlen(Response));
 }
 
 void CRtspSession::Handle_RtspPLAY()
@@ -478,7 +481,7 @@ void CRtspSession::Handle_RtspPLAY()
              m_RtspSessionID,
              m_CommandHostPort, m_CommandPresentationPart, m_CommandStreamPart);
 
-    socketsend(m_RtspClient,Response,strlen(Response));
+    tcpsocketsend(m_RtspClient,Response,strlen(Response));
 }
 
 char const * CRtspSession::DateHeader()
@@ -512,7 +515,7 @@ bool CRtspSession::handleRequests( uint32_t readTimeoutMs )
     }
 
     // we always read 1 byte less than the buffer length, so all string ops here will not panic
-    int res = socketread( m_RtspClient, RecvBuf + bufPos, RTSP_BUFFER_SIZE - bufPos - 1, readTimeoutMs );
+    int res = tcpsocketread( m_RtspClient, RecvBuf + bufPos, RTSP_BUFFER_SIZE - bufPos - 1, readTimeoutMs );
     if ( res > 0 )
     {
         bufPos += res;
@@ -558,7 +561,7 @@ bool CRtspSession::handleRequests( uint32_t readTimeoutMs )
             {
                 // not sure which code is more appropriate and if CSeq is needed here?
                 int l = snprintf( RecvBuf, RTSP_BUFFER_SIZE, "RTSP/1.0 400 Bad Request\r\nCSeq: %u\r\n\r\n", m_CSeq );
-                socketsend( m_RtspClient, RecvBuf, l );
+                tcpsocketsend( m_RtspClient, RecvBuf, l );
                 bufPos = 0;
                 return false;
             }

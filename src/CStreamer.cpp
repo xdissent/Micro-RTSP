@@ -128,7 +128,7 @@ int CStreamer::SendRtpPacket(unsigned const char * jpeg, int jpegLen, int fragme
 
     // RTP marker bit must be set on last fragment
     if (m_TCPTransport) // RTP over RTSP - we send the buffer + 4 byte additional header
-        socketsend(m_Client,RtpBuf,RtpPacketSize + 4);
+        tcpsocketsend(m_Client,RtpBuf,RtpPacketSize + 4);
     else                // UDP - we send just the buffer by skipping the 4 byte RTP over RTSP header
     {
         socketpeeraddr(m_Client, &otherip, &otherport);
@@ -201,7 +201,7 @@ void CStreamer::streamFrame(unsigned const char *data, uint32_t dataLen, uint32_
 
     // Increment ONLY after a full frame
     uint32_t units = 90000; // Hz per RFC 2435
-    m_Timestamp += (units * deltams / 1000);                             // fixed timestamp increment for a frame rate of 25fps
+    m_Timestamp += (units * deltams / 1000); // fixed timestamp increment for a frame rate of 25fps
 
     m_SendIdx++;
     if (m_SendIdx > 1) m_SendIdx = 0;
