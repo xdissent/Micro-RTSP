@@ -64,7 +64,7 @@ int main()
             workerThread(ClientSocket);
     }
 
-    closesocket(MasterSocket);
+    close(MasterSocket);
 
     return 0;
 }
