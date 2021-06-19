@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 #include <sys/socket.h>

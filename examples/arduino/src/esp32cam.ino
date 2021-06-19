@@ -3,6 +3,7 @@
 //or other features are provided. Although this uses the Arduino framework it is intended to be built with
 //PlatformIO.
 
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <OV2640Streamer.h>
