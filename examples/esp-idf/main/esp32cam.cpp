@@ -88,7 +88,7 @@ void rtsp_server(void)
     camera_config_t config = esp32cam_aithinker_config;
     config.frame_size = CAM_FRAMESIZE;
     config.jpeg_quality = CAM_QUALITY; 
-    config.xclk_freq_hz = 16500000; //seems to increase stability compared to the full 20000000
+    //config.xclk_freq_hz = 16500000; //seems to increase stability compared to the full 20000000
     cam.init(config);
 
     //setup other camera options
