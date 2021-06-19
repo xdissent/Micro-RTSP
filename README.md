@@ -6,7 +6,7 @@ RTSP video stream camera.
 
 # Usage
 
-This library works for ESP32/arduino targets but also for most any posixish platform.
+This library works for ESP32/arduino targets but also for most any POSIX-ish platform.
 
 ## Example arduino/ESP32 usage
 
@@ -14,8 +14,8 @@ This library will work standalone, but it is _super_ easy to use if your app is 
 Just "pio lib install Micro-RTSP" to pull the latest version from their library server.  If you want to use the OV2640
 camera support you'll need to be targeting the espressif32 platform in your project.
 
-See the [example platform.io app](/examples).  It should build and run on virtually any of the $10
-ESP32-CAM boards (such as M5CAM) with some modifications The example is targeted for the AI-Thinker ESP32-CAM.
+See the [example platform.io app](/examples/arduino).  It should build and run on virtually any of the $10
+ESP32-CAM boards (such as M5CAM) with some modifications. The example is targeted for the AI-Thinker ESP32-CAM.
 The relevant bit of the code is included below.  In short:
 1. Listen for a TCP connection on the RTSP port with accept()
 2. When a connection comes in, create a CRtspSession and OV2640Streamer camera streamer objects.
@@ -58,6 +58,9 @@ void loop()
     }
 }
 ```
+## Example esp-idf usage
+Also included is an example using the Espressif IoT Development Framework. See the [example esp-idf README](/examples/esp-idf/README.md) for further information.
+
 ## Example posix/linux usage
 
 There is a small standalone example [here](/test/RTSPTestServer.cpp).  You can build it by following [these](/test/README.md) directions.  The usage of the two key classes (CRtspSession and SimStreamer) are very similar to to the ESP32 usage.
