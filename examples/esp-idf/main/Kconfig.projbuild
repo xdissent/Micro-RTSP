@@ -11,4 +11,22 @@ menu "ESP32CAM Configuration"
         default "mypassword"
         help
             WiFi password (WPA or WPA2) for the ESP32CAM to use.
+
+    config CAM_VERTICAL_FLIP
+        bool "Vertical flip"
+        default y
+        help
+            Vertically flip the camera image.
+
+    config CAM_HORIZONTAL_MIRROR
+        bool "Horizontal mirror"
+        default y
+        help
+            Horizontally mirrors the camera image.
+
+    config CAM_FRAMERATE
+        int "Frames per second"
+        default 4
+        help
+            Frames per second the camera should run at.
 endmenu

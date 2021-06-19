@@ -8,22 +8,18 @@
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 
-//TODO convert these into either menuconfig items or MQTT settings that are saved to NVS
+//Run `idf.py menuconfig` and set various other options ing "ESP32CAM Configuration"
 
 //common camera settings, see below for other camera options
 #define CAM_FRAMESIZE FRAMESIZE_VGA //enough resolution for a simple security cam
-#define CAM_FRAMEBUFFERS 2 //need double-buffers for reasonable framerate
 #define CAM_QUALITY 12 //0 to 63, with higher being lower-quality (and less bandwidth), 12 seems reasonable
-#define CAM_FRAMERATE 4 //frames per second
-#define CAM_VERTICAL_FLIP 1 //1 to enable
-#define CAM_HORIZONTAL_MIRROR 1 //1 to enable
 
 //MQTT settings
 #define MQTT_SERVER "192.168.1.163"   //DNS resolving on EPS32 might be broken "homeassistant.localdomain"
 #define MQTT_PORT 1883
 #define MQTT_USER "mqtt"
 #define MQTT_PASS "mqtt"
-#define MQTT_CLIENT_NAME CONFIG_LWIP_LOCAL_HOSTNAME
+#define MQTT_CLIENT_NAME CONFIG_LWIP_LOCAL_HOSTNAME //menuconfig->Component config->LWIP->Local netif hostname
 #define MQTT_LED_TOPIC "devices/" MQTT_CLIENT_NAME "/set/led"
 #define MQTT_WILL_TOPIC "devices/" MQTT_CLIENT_NAME "/connected"
 #define MQTT_WILL_MSG "false"
@@ -54,7 +50,7 @@ void client_worker(void * client)
     CRtspSession * session = new CRtspSession((SOCKET)client, streamer);
 
     unsigned long lastFrameTime = 0;
-    const unsigned long msecPerFrame = (1000 / CAM_FRAMERATE);
+    const unsigned long msecPerFrame = (1000 / CONFIG_CAM_FRAMERATE);
 
     while (session->m_stopped == false)
     {
@@ -92,7 +88,6 @@ void rtsp_server(void)
     camera_config_t config = esp32cam_aithinker_config;
     config.frame_size = CAM_FRAMESIZE;
     config.jpeg_quality = CAM_QUALITY; 
-    config.fb_count = CAM_FRAMEBUFFERS;
     config.xclk_freq_hz = 16500000; //seems to increase stability compared to the full 20000000
     cam.init(config);
 
@@ -116,8 +111,8 @@ void rtsp_server(void)
     //s->set_wpc(s, 1);            // 0 = disable , 1 = enable
     //s->set_raw_gma(s, 1);        // 0 = disable , 1 = enable
     //s->set_lenc(s, 1);           // 0 = disable , 1 = enable
-    s->set_hmirror(s, CAM_HORIZONTAL_MIRROR); // 0 = disable , 1 = enable
-    s->set_vflip(s, CAM_VERTICAL_FLIP);       // 0 = disable , 1 = enable
+    s->set_hmirror(s, CONFIG_CAM_HORIZONTAL_MIRROR); // 0 = disable , 1 = enable
+    s->set_vflip(s, CONFIG_CAM_VERTICAL_FLIP);       // 0 = disable , 1 = enable
     //s->set_dcw(s, 1);            // 0 = disable , 1 = enable
     //s->set_colorbar(s, 0);       // 0 = disable , 1 = enable
 

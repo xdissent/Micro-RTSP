@@ -8,7 +8,8 @@ This example also uses network configuration tweaks from the iperf example.
 This example supports multiple simultaneious TCP and UDP clients. All clients will use the same camera settings. Be aware that performance will be greatly reduced with multiple clients.
 
 This project has been tested with esp-idf version 4.4.
-This project epends on the esp32-camera library which should be cloned into the `components` folder.
+
+This project epends on the `esp32-camera` library which should be cloned into the `components` folder when this repo is cloned (it is included as a git submodule).
 
 ## How to use example
 
@@ -21,8 +22,10 @@ In the `Example Configuration` menu:
 * Set the Wi-Fi configuration.
     * Set `WiFi SSID`.
     * Set `WiFi Password`.
+    * Set your desired framerate.
+    * Set vertical and horizontal flipping of the image (depends on how the camera is mounted).
 
-Configuration options for the camera can be found in main/esp32cam.cpp
+Additional configuration options for the camera (resolution, quality, whitebalance) can be found in main/esp32cam.cpp
 Configuration options for the MQTT client can be found in main/esp32cam.cpp
 
 ### Build and Flash
@@ -33,9 +36,9 @@ Run `idf.py -p PORT flash monitor` to build, flash and monitor the project.
 
 (To exit the serial monitor, type ``Ctrl-]``.)
 
-Once the project is flashed once to the board, you can use the ota_update.py python script to update the ESP32-CAM once it is connected to WiFi and your MQTT broker.
+Once the project is flashed to the board, you can use the ota_update.py python script to update the ESP32-CAM once it is connected to your WiFi and your MQTT broker.
 
-Run `python ota_update.py <SERVER_PORT> <LWIP_LOCAL_HOSTNAME>` where `<SERVER_PORT>` is what to use for the local HTTP server (8443 works fine) and `<LWIP_LOCAL_HOSTNAME>` is the device hostname set in menuconfig.
+To update OTA, run `python ota_update.py <SERVER_PORT> <LWIP_LOCAL_HOSTNAME>` where `<SERVER_PORT>` is what to use for the local HTTP server (8443 works fine) and `<LWIP_LOCAL_HOSTNAME>` is the device hostname set in menuconfig.
 Example: `python ota_update.py 8443 esp32cam1`
 
 See the Getting Started Guide for all the steps to configure and use the ESP-IDF to build projects.
