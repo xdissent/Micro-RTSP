@@ -25,16 +25,15 @@ In the `Example Configuration` menu:
     * Set your desired framerate.
     * Set vertical and horizontal flipping of the image (depends on how the camera is mounted).
 
-Additional configuration options for the camera (resolution, quality, whitebalance) can be found in main/esp32cam.cpp
-Configuration options for the MQTT client can be found in main/esp32cam.cpp
+Additional configuration options for the camera (resolution, quality, whitebalance) can be found in `main/esp32cam.cpp`
+Configuration options for the MQTT client can be found in `main/esp32cam.cpp`
 
 ### Build and Flash
 
-Build the project and flash it to the board, then run the monitor tool to view the serial output:
+Build the project and flash it to the board:
 
-Run `idf.py -p PORT flash monitor` to build, flash and monitor the project.
+Run `idf.py -p PORT flash` to build and flash the project.
 
-(To exit the serial monitor, type ``Ctrl-]``.)
 
 Once the project is flashed to the board, you can use the ota_update.py python script to update the ESP32-CAM once it is connected to your WiFi and your MQTT broker.
 
