@@ -140,7 +140,7 @@ if __name__ == '__main__':
     client.publish("devices/" + device + "/ota/url", ota_url)
     # wait for a good status from the device
 
-    while status == "":
+    while status == "" and thread1.is_alive():
         print('.', end='', flush=True)
         time.sleep(1)
     print("\nOTA finished with return code: " + status)
