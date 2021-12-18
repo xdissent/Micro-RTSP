@@ -21,7 +21,7 @@ typedef uint16_t IPPORT; // on linux use network byte order
 
 #define NULLSOCKET NULL
 
-inline void closesocket(SOCKET s) {
+inline void tcpclosesocket(SOCKET s) {
     DEBUG_PRINT("closing TCP socket\n");
 
     if(s) {
@@ -59,7 +59,7 @@ inline UDPSOCKET udpsocketcreate(unsigned short portNum)
 }
 
 // TCP sending
-inline ssize_t socketsend(SOCKET sockfd, const void *buf, size_t len)
+inline ssize_t tcpsocketsend(SOCKET sockfd, const void *buf, size_t len)
 {
     ssize_t sent = sockfd->write((uint8_t *) buf, len);
 
@@ -90,7 +90,7 @@ inline ssize_t udpsocketsend(UDPSOCKET sockfd, const void *buf, size_t len,
 
    Return 0=socket was closed by client, -1=timeout, >0 number of bytes read
  */
-inline int socketread(SOCKET sock, char *buf, size_t buflen, int timeoutmsec)
+inline int tcpsocketread(SOCKET sock, char *buf, size_t buflen, int timeoutmsec)
 {
     if(!sock->connected()) {
         DEBUG_PRINT("client has closed the socket\n");
