@@ -6,7 +6,7 @@ RTSP video stream camera.
 
 # Usage
 
-This library works for ESP32/arduino targets but also for most any POSIX-ish platform.
+Follow the examples for usage of this library. NOTE: The examples should work with standard Arduino, Platform.io Arduino, Platform.io espidf, and the ESP-IDF directly. It is highly recommended you use the ESP-IDF directly, as it is the most up-to-date and will perform significantly better. It’s a pain to setup ESP-IDF, but it is well worth it. See the [example esp-idf README](/examples/esp-idf/README.md) for further information.
 
 ## Example arduino/ESP32 usage
 
