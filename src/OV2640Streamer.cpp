@@ -9,11 +9,9 @@ OV2640Streamer::OV2640Streamer(SOCKET aClient, OV2640 &cam) : CStreamer(aClient,
     DEBUG_PRINT("Created streamer width=%d, height=%d\n", cam.getWidth(), cam.getHeight());
 }
 
-void OV2640Streamer::streamImage(uint32_t curMsec)
+void OV2640Streamer::streamImage(uint32_t curMsec, camera_fb_t *frame)
 {
-    m_cam.run();// queue up a read for next time
-
-    BufPtr bytes = m_cam.getfb();
-    streamFrame(bytes, m_cam.getSize(), curMsec);
-    m_cam.done();
+     m_cam.run();// queue up a read for next time
+     streamFrame(frame->buf, frame->len, curMsec);
+     m_cam.done();
 }

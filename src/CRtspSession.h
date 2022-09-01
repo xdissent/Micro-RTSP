@@ -1,5 +1,6 @@
 #pragma once
 
+#include <esp_camera.h>
 #include "CStreamer.h"
 #include "platglue.h"
 
@@ -40,7 +41,7 @@ public:
     /**
        broadcast a current frame
      */
-    void broadcastCurrentFrame(uint32_t curMsec);
+    void broadcastCurrentFrame(uint32_t curMsec, camera_fb_t* frame);
 
     bool m_streaming;
     bool m_stopped;

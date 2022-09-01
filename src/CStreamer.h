@@ -1,5 +1,6 @@
 #pragma once
 
+#include <esp_camera.h>
 #include "platglue.h"
 
 #define RTPBUF_SIZE 2048
@@ -16,7 +17,7 @@ public:
     u_short GetRtpServerPort();
     u_short GetRtcpServerPort();
 
-    virtual void    streamImage(uint32_t curMsec) = 0; // send a new image to the client
+    virtual void streamImage(uint32_t curMsec, camera_fb_t *frame) = 0; // send a new image to the client
     void setURI( String hostport, String pres = "mjpeg", String stream = "1" ); // set URI parts for sessions to use.
     String getURIHost(){ return m_URIHost; }; // for getting things back by sessions
     String getURIPresentation(){ return m_URIPresentation; };

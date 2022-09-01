@@ -11,5 +11,5 @@ class OV2640Streamer : public CStreamer
 public:
     OV2640Streamer(SOCKET aClient, OV2640 &cam);
 
-    virtual void streamImage(uint32_t curMsec) override;
+    virtual void streamImage(uint32_t curMsec, camera_fb_t *frame) override;
 };

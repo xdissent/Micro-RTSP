@@ -596,10 +596,10 @@ bool CRtspSession::handleRequests( uint32_t readTimeoutMs )
     }
 }
 
-void CRtspSession::broadcastCurrentFrame(uint32_t curMsec) {
+void CRtspSession::broadcastCurrentFrame(uint32_t curMsec, camera_fb_t* frame) {
     // Send a frame
     if (m_streaming && !m_stopped) {
         DEBUG_PRINT("serving a frame\n");
-        m_Streamer->streamImage(curMsec);
+        m_Streamer->streamImage(curMsec, frame);
     }
 }
