@@ -3,7 +3,7 @@
 #define TAG "OV2640"
 
 // definitions appropriate for the ESP32-CAM devboard (and most clones)
-camera_config_t esp32cam_config{
+camera_config_t esp32cam_config {
 
     .pin_pwdn = -1, // FIXME: on the TTGO T-Journal I think this is GPIO 0
     .pin_reset = 15,
@@ -32,11 +32,11 @@ camera_config_t esp32cam_config{
     // .frame_size = FRAMESIZE_SXGA, // needs 160K for framebuffer
     // .frame_size = FRAMESIZE_XGA, // needs 96K or even smaller FRAMESIZE_SVGA - can work if using only 1 fb
     .frame_size = FRAMESIZE_SVGA,
-    .jpeg_quality = 12, //0-63 lower numbers are higher quality
-    .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
+    .jpeg_quality = 12, // 0-63 lower numbers are higher quality
+    .fb_count = 2 // if more than one i2s runs in continous mode.  Use only with jpeg
 };
 
-camera_config_t esp32cam_aithinker_config{
+camera_config_t esp32cam_aithinker_config {
 
     .pin_pwdn = 32,
     .pin_reset = -1,
@@ -67,11 +67,11 @@ camera_config_t esp32cam_aithinker_config{
     // .frame_size = FRAMESIZE_SXGA, // needs 160K for framebuffer
     // .frame_size = FRAMESIZE_XGA, // needs 96K or even smaller FRAMESIZE_SVGA - can work if using only 1 fb
     .frame_size = FRAMESIZE_SVGA,
-    .jpeg_quality = 12, //0-63 lower numbers are higher quality
-    .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
+    .jpeg_quality = 12, // 0-63 lower numbers are higher quality
+    .fb_count = 2 // if more than one i2s runs in continous mode.  Use only with jpeg
 };
 
-camera_config_t esp32cam_ttgo_t_config{
+camera_config_t esp32cam_ttgo_t_config {
 
     .pin_pwdn = 26,
     .pin_reset = -1,
@@ -97,13 +97,13 @@ camera_config_t esp32cam_ttgo_t_config{
     .ledc_channel = LEDC_CHANNEL_0,
     .pixel_format = PIXFORMAT_JPEG,
     .frame_size = FRAMESIZE_SVGA,
-    .jpeg_quality = 12, //0-63 lower numbers are higher quality
-    .fb_count = 2       // if more than one i2s runs in continous mode.  Use only with jpeg
+    .jpeg_quality = 12, // 0-63 lower numbers are higher quality
+    .fb_count = 2 // if more than one i2s runs in continous mode.  Use only with jpeg
 };
 void OV2640::done(void)
 {
     if (fb) {
-        //return the frame buffer back to the driver for reuse
+        // return the frame buffer back to the driver for reuse
         esp_camera_fb_return(fb);
         fb = NULL;
     }
@@ -112,7 +112,7 @@ void OV2640::done(void)
 void OV2640::run(void)
 {
     if (fb)
-        //return the frame buffer back to the driver for reuse
+        // return the frame buffer back to the driver for reuse
         esp_camera_fb_return(fb);
 
     fb = esp_camera_fb_get();
@@ -144,7 +144,7 @@ size_t OV2640::getSize(void)
     return fb->len;
 }
 
-uint8_t *OV2640::getfb(void)
+uint8_t* OV2640::getfb(void)
 {
     runIfNeeded();
     if (!fb)
@@ -170,8 +170,7 @@ pixformat_t OV2640::getPixelFormat(void)
 
 void OV2640::setPixelFormat(pixformat_t format)
 {
-    switch (format)
-    {
+    switch (format) {
     case PIXFORMAT_RGB565:
     case PIXFORMAT_YUV422:
     case PIXFORMAT_GRAYSCALE:
@@ -190,8 +189,7 @@ esp_err_t OV2640::init(camera_config_t config)
     memcpy(&_cam_config, &config, sizeof(config));
 
     esp_err_t err = esp_camera_init(&_cam_config);
-    if (err != ESP_OK)
-    {
+    if (err != ESP_OK) {
         printf("Camera probe failed with error 0x%x", err);
         return err;
     }
